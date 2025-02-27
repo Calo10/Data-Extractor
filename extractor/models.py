@@ -5,6 +5,7 @@ from typing import Optional
 class DBType(str, Enum):
     POSTGRES = "postgresql"
     MYSQL = "mysql"
+    MSSQL = "sqlserver"
 
 class SparkConfig(BaseModel):
     driver_memory: str = Field(default="10g", description="Spark driver memory")
@@ -18,7 +19,7 @@ class SparkConfig(BaseModel):
     num_partitions: int = Field(default=10, description="Number of partitions for JDBC read")
 
 class DatabaseConfig(BaseModel):
-    db_type: DBType = Field(..., description="Database type (postgresql or mysql)")
+    db_type: DBType = Field(..., description="Database type (postgresql, mysql, or sqlserver)")
     host: str = Field(..., description="Database host", example="localhost")
     port: str = Field(..., description="Database port", example="3306")
     database: str = Field(..., description="Database name")
@@ -29,11 +30,14 @@ class DatabaseConfig(BaseModel):
     def driver(self) -> str:
         return {
             DBType.POSTGRES: "org.postgresql.Driver",
-            DBType.MYSQL: "com.mysql.cj.jdbc.Driver"
+            DBType.MYSQL: "com.mysql.cj.jdbc.Driver",
+            DBType.MSSQL: "com.microsoft.sqlserver.jdbc.SQLServerDriver"
         }[self.db_type]
     
     @property
     def jdbc_url(self) -> str:
+        if self.db_type == DBType.MSSQL:
+            return f"jdbc:sqlserver://{self.host}:{self.port};databaseName={self.database}"
         return f"jdbc:{self.db_type}://{self.host}:{self.port}/{self.database}"
 
 class ExtractionRequest(BaseModel):

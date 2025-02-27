@@ -13,6 +13,7 @@ def create_spark_session(spark_config: SparkConfig = None):
         .config("spark.jars.packages", 
                 "org.postgresql:postgresql:42.2.18," + 
                 "mysql:mysql-connector-java:8.0.28," +
+                "com.microsoft.sqlserver:mssql-jdbc:9.4.1.jre8," +
                 "com.databricks:spark-xml_2.12:0.15.0") \
         .config("spark.driver.memory", spark_config.driver_memory) \
         .config("spark.executor.memory", spark_config.executor_memory) \
