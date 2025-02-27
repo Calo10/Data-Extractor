@@ -75,5 +75,45 @@ async def extract_to_xml(request: ExtractionRequest):
     finally:
         spark.stop()
 
+@app.post("/extract_parquet")
+async def extract_to_parquet(request: ExtractionRequest):
+    """Extract data from database and save to Parquet file"""
+    output_dir = "exports"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Ensure filename ends with .parquet
+    output_filename = request.output_filename
+    if not output_filename.endswith('.parquet'):
+        output_filename = f"{output_filename}.parquet"
+    
+    output_path = os.path.join(output_dir, output_filename)
+    
+    spark = create_spark_session()
+    try:
+        result = extract_data(spark, request.db_config, request.query, output_path, format="parquet")
+        return result
+    finally:
+        spark.stop()
+
+@app.post("/extract_sql")
+async def extract_to_sql(request: ExtractionRequest):
+    """Extract data from database and save as SQL dump file"""
+    output_dir = "exports"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Ensure filename ends with .sql
+    output_filename = request.output_filename
+    if not output_filename.endswith('.sql'):
+        output_filename = f"{output_filename}.sql"
+    
+    output_path = os.path.join(output_dir, output_filename)
+    
+    spark = create_spark_session()
+    try:
+        result = extract_data(spark, request.db_config, request.query, output_path, format="sql")
+        return result
+    finally:
+        spark.stop()
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000) 

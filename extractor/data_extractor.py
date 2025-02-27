@@ -25,22 +25,40 @@ def extract_data(spark, db_params, query, output_path, format="csv"):
             .option("password", db_params.password) \
             .load()
         
-        if format == "json":
-            df.write \
-                .mode("overwrite") \
-                .json(output_path)
+        if format == "sql":
+            # Convert DataFrame to SQL INSERT statements
+            rows = df.collect()
+            columns = df.columns
+            table_name = output_path.split('/')[-1].replace('.sql', '')
+            
+            with open(output_path, 'w') as f:
+                # Write CREATE TABLE statement
+                column_types = [f"{col} {df.schema[col].dataType.simpleString()}" 
+                              for col in columns]
+                create_table = f"CREATE TABLE IF NOT EXISTS {table_name} (\n  "
+                create_table += ",\n  ".join(column_types)
+                create_table += "\n);\n\n"
+                f.write(create_table)
+                
+                # Write INSERT statements
+                for row in rows:
+                    values = [f"'{str(val)}'" if val is not None else 'NULL' 
+                            for val in row]
+                    insert = f"INSERT INTO {table_name} ({', '.join(columns)}) "
+                    insert += f"VALUES ({', '.join(values)});\n"
+                    f.write(insert)
+                
+        elif format == "json":
+            df.write.mode("overwrite").json(output_path)
         elif format == "xml":
-            df.write \
-                .mode("overwrite") \
-                .format("xml") \
+            df.write.mode("overwrite").format("xml") \
                 .option("rootTag", "data") \
                 .option("rowTag", "record") \
                 .save(output_path)
+        elif format == "parquet":
+            df.write.mode("overwrite").parquet(output_path)
         else:
-            df.write \
-                .mode("overwrite") \
-                .option("header", "true") \
-                .csv(output_path)
+            df.write.mode("overwrite").option("header", "true").csv(output_path)
         
         return {"status": "success", "message": f"Data extracted to {output_path}", "row_count": df.count()}
     except Exception as e:
