@@ -26,5 +26,5 @@ class DatabaseConfig(BaseModel):
 
 class ExtractionRequest(BaseModel):
     query: str = Field(..., description="SQL query to execute", example="SELECT * FROM employees")
-    output_filename: str = Field(..., description="Name of the output CSV file", example="employees.csv")
+    output_filename: str = Field(..., description="Name of the output file", example="employees.csv/json/xml")
     db_config: DatabaseConfig = Field(..., description="Database connection configuration") 

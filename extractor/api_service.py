@@ -30,7 +30,47 @@ async def extract_to_csv(request: ExtractionRequest):
     
     spark = create_spark_session()
     try:
-        result = extract_data(spark, request.db_config, request.query, output_path)
+        result = extract_data(spark, request.db_config, request.query, output_path, format="csv")
+        return result
+    finally:
+        spark.stop()
+
+@app.post("/extract_json")
+async def extract_to_json(request: ExtractionRequest):
+    """Extract data from database and save to JSON file"""
+    output_dir = "exports"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Ensure filename ends with .json
+    output_filename = request.output_filename
+    if not output_filename.endswith('.json'):
+        output_filename = f"{output_filename}.json"
+    
+    output_path = os.path.join(output_dir, output_filename)
+    
+    spark = create_spark_session()
+    try:
+        result = extract_data(spark, request.db_config, request.query, output_path, format="json")
+        return result
+    finally:
+        spark.stop()
+
+@app.post("/extract_xml")
+async def extract_to_xml(request: ExtractionRequest):
+    """Extract data from database and save to XML file"""
+    output_dir = "exports"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Ensure filename ends with .xml
+    output_filename = request.output_filename
+    if not output_filename.endswith('.xml'):
+        output_filename = f"{output_filename}.xml"
+    
+    output_path = os.path.join(output_dir, output_filename)
+    
+    spark = create_spark_session()
+    try:
+        result = extract_data(spark, request.db_config, request.query, output_path, format="xml")
         return result
     finally:
         spark.stop()
