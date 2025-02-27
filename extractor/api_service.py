@@ -38,9 +38,16 @@ async def extract_to_csv(request: ExtractionRequest):
     
     output_path = os.path.join(output_dir, request.output_filename)
     
-    spark = create_spark_session()
+    spark = create_spark_session(request.spark_config)
     try:
-        result = extract_data(spark, request.db_config, request.query, output_path, format="csv")
+        result = extract_data(
+            spark, 
+            request.db_config, 
+            request.query, 
+            output_path, 
+            format="csv",
+            spark_config=request.spark_config
+        )
         return result
     finally:
         spark.stop()

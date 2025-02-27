@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { DatabaseConfig } from './pages/DatabaseConfig.tsx'
+import { SparkConfig } from './pages/SparkConfig.tsx'
 import { QueryExport } from './pages/QueryExport.tsx'
 import './App.css'
 
@@ -10,6 +11,7 @@ function App() {
         <h1>Database Extractor</h1>
         <nav className="sidebar-nav">
           <Link to="/" className="nav-link">Database Config</Link>
+          <Link to="/spark" className="nav-link">Spark Config</Link>
           <Link to="/query" className="nav-link">Query & Export</Link>
         </nav>
       </aside>
@@ -17,6 +19,7 @@ function App() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<DatabaseConfig />} />
+          <Route path="/spark" element={<SparkConfig />} />
           <Route path="/query" element={<QueryExport />} />
         </Routes>
       </main>

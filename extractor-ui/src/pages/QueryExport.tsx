@@ -16,16 +16,44 @@ interface ExportData {
     user: string
     password: string
   }
+  spark_config: {
+    driver_memory: string
+    executor_memory: string
+    executor_cores: number
+    shuffle_partitions: number
+    default_parallelism: number
+    off_heap_enabled: boolean
+    off_heap_size: string
+    fetch_size: number
+    num_partitions: number
+  }
 }
 
 export function QueryExport() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
+  const [queryError, setQueryError] = useState('')
+
+  const validateQuery = (query: string) => {
+    if (query.includes(';')) {
+      setQueryError('SQL query should not contain semicolons (;)')
+      return false
+    }
+    setQueryError('')
+    return true
+  }
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
+    const query = formData.get('query') as string
+    
+    if (!validateQuery(query)) {
+      return
+    }
+    
     const dbConfig = JSON.parse(localStorage.getItem('dbConfig') || '{}')
+    const sparkConfig = JSON.parse(localStorage.getItem('sparkConfig') || '{}')
     
     let filename = formData.get('output_filename') as string
     const format = formData.get('output_format') as string
@@ -35,10 +63,11 @@ export function QueryExport() {
     }
 
     const exportData: ExportData = {
-      query: formData.get('query') as string,
+      query,
       output_filename: filename,
       output_format: format,
-      db_config: dbConfig
+      db_config: dbConfig,
+      spark_config: sparkConfig
     }
 
     try {
@@ -76,7 +105,10 @@ export function QueryExport() {
               name="query"
               required
               defaultValue="SELECT * FROM employees"
+              onChange={(e) => validateQuery(e.target.value)}
+              className={queryError ? 'error' : ''}
             />
+            {queryError && <div className="error-message">{queryError}</div>}
           </div>
 
           <div className="form-grid">

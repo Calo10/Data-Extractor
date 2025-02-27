@@ -1,8 +1,12 @@
 from pyspark.sql import SparkSession
+from models import SparkConfig
 
-def create_spark_session():
+def create_spark_session(spark_config: SparkConfig = None):
     """Create and return a Spark session with database connectivity"""
-    return SparkSession.builder \
+    if spark_config is None:
+        spark_config = SparkConfig()
+
+    builder = SparkSession.builder \
         .appName("DataExtractor") \
         .config("spark.driver.allowMultipleContexts", "true") \
         .config("spark.driver.extraJavaOptions", "-Djava.security.manager=allow") \
@@ -10,19 +14,32 @@ def create_spark_session():
                 "org.postgresql:postgresql:42.2.18," + 
                 "mysql:mysql-connector-java:8.0.28," +
                 "com.databricks:spark-xml_2.12:0.15.0") \
-        .master("local[*]") \
-        .getOrCreate()
+        .config("spark.driver.memory", spark_config.driver_memory) \
+        .config("spark.executor.memory", spark_config.executor_memory) \
+        .config("spark.executor.cores", spark_config.executor_cores) \
+        .config("spark.sql.shuffle.partitions", spark_config.shuffle_partitions) \
+        .config("spark.default.parallelism", spark_config.default_parallelism) \
+        .config("spark.memory.offHeap.enabled", spark_config.off_heap_enabled) \
+        .config("spark.memory.offHeap.size", spark_config.off_heap_size) \
+        .master("local[*]")
 
-def extract_data(spark, db_params, query, output_path, format="csv"):
+    return builder.getOrCreate()
+
+def extract_data(spark, db_params, query, output_path, format="csv", spark_config: SparkConfig = None):
     """Extract data from database and save to specified format"""
+    if spark_config is None:
+        spark_config = SparkConfig()
+
     try:
         df = spark.read \
             .format("jdbc") \
-            .option("url", db_params.jdbc_url) \
+            .option("url", f"{db_params.jdbc_url}?sslmode=disable") \
             .option("driver", db_params.driver) \
             .option("dbtable", f"({query}) as tmp") \
             .option("user", db_params.user) \
             .option("password", db_params.password) \
+            .option("fetchsize", spark_config.fetch_size) \
+            .option("numPartitions", spark_config.num_partitions) \
             .load()
         
         if format == "sql":

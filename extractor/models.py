@@ -1,9 +1,21 @@
 from pydantic import BaseModel, Field
 from enum import Enum
+from typing import Optional
 
 class DBType(str, Enum):
     POSTGRES = "postgresql"
     MYSQL = "mysql"
+
+class SparkConfig(BaseModel):
+    driver_memory: str = Field(default="10g", description="Spark driver memory")
+    executor_memory: str = Field(default="10g", description="Spark executor memory")
+    executor_cores: int = Field(default=4, description="Number of cores per executor")
+    shuffle_partitions: int = Field(default=100, description="Number of shuffle partitions")
+    default_parallelism: int = Field(default=100, description="Default parallelism")
+    off_heap_enabled: bool = Field(default=True, description="Enable off-heap memory")
+    off_heap_size: str = Field(default="10g", description="Off-heap memory size")
+    fetch_size: int = Field(default=10000, description="JDBC fetch size")
+    num_partitions: int = Field(default=10, description="Number of partitions for JDBC read")
 
 class DatabaseConfig(BaseModel):
     db_type: DBType = Field(..., description="Database type (postgresql or mysql)")
@@ -27,4 +39,5 @@ class DatabaseConfig(BaseModel):
 class ExtractionRequest(BaseModel):
     query: str = Field(..., description="SQL query to execute", example="SELECT * FROM employees")
     output_filename: str = Field(..., description="Name of the output file", example="employees.csv/json/xml/parquet/sql")
-    db_config: DatabaseConfig = Field(..., description="Database connection configuration") 
+    db_config: DatabaseConfig = Field(..., description="Database connection configuration")
+    spark_config: Optional[SparkConfig] = Field(default=None, description="Spark configuration parameters") 

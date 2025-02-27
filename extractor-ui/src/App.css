@@ -140,6 +140,23 @@ input, select, textarea {
   color: var(--text-primary);
 }
 
+input:disabled,
+select:disabled {
+  background-color: var(--bg-color);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  border-style: dashed;
+  opacity: 0.8;
+}
+
+select#preset {
+  background-color: white;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-style: solid;
+  opacity: 1;
+}
+
 input::placeholder, textarea::placeholder {
   color: var(--text-secondary);
 }
@@ -148,6 +165,20 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--primary-color);
   outline: none;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.error {
+  border-color: #dc2626 !important;
+}
+
+.error:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+}
+
+.error-message {
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
 }
 
 textarea {

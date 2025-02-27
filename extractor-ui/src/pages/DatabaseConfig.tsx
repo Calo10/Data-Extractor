@@ -1,4 +1,4 @@
-import { FormEvent } from 'react'
+import { FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 interface DbConfig {
@@ -10,8 +10,15 @@ interface DbConfig {
   password: string
 }
 
+const DB_PORTS = {
+  postgresql: "5432",
+  mysql: "3306",
+  sqlserver: "1433"
+}
+
 export function DatabaseConfig() {
   const navigate = useNavigate()
+  const [selectedDbType, setSelectedDbType] = useState('postgresql')
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -27,7 +34,7 @@ export function DatabaseConfig() {
     }
 
     localStorage.setItem('dbConfig', JSON.stringify(dbConfig))
-    navigate('/query')
+    navigate('/spark')
   }
 
   return (
@@ -45,7 +52,13 @@ export function DatabaseConfig() {
           <div className="form-grid">
             <div className="form-group">
               <label htmlFor="db_type">Database Type</label>
-              <select id="db_type" name="db_type" required defaultValue="postgresql">
+              <select 
+                id="db_type" 
+                name="db_type" 
+                required 
+                defaultValue="postgresql"
+                onChange={(e) => setSelectedDbType(e.target.value)}
+              >
                 <option value="postgresql">PostgreSQL</option>
                 <option value="mysql">MySQL</option>
                 <option value="sqlserver">SQL Server</option>
@@ -59,7 +72,16 @@ export function DatabaseConfig() {
 
             <div className="form-group">
               <label htmlFor="port">Port</label>
-              <input type="text" id="port" name="port" defaultValue="3306" required />
+              <select
+                id="port"
+                name="port"
+                required
+                value={DB_PORTS[selectedDbType as keyof typeof DB_PORTS]}
+              >
+                <option value="5432">5432 (PostgreSQL)</option>
+                <option value="3306">3306 (MySQL)</option>
+                <option value="1433">1433 (SQL Server)</option>
+              </select>
             </div>
 
             <div className="form-group">
