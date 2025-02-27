@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
 from data_extractor import create_spark_session, extract_data
@@ -9,6 +10,15 @@ app = FastAPI(
     description="API for extracting data from databases using Apache Spark",
     version="1.0.0",
     docs_url="/swagger"
+)
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
 )
 
 @app.post("/extract_csv", 
