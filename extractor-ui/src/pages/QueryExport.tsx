@@ -29,10 +29,19 @@ interface ExportData {
   }
 }
 
+interface PreviewData {
+  status: string
+  columns: string[]
+  data: Record<string, any>[]
+  row_count: number
+}
+
 export function QueryExport() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
   const [queryError, setQueryError] = useState('')
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null)
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false)
 
   const validateQuery = (query: string) => {
     if (query.includes(';')) {
@@ -41,6 +50,23 @@ export function QueryExport() {
     }
     setQueryError('')
     return true
+  }
+
+  const handlePreview = async (query: string) => {
+    const dbConfig = JSON.parse(localStorage.getItem('dbConfig') || '{}')
+    
+    try {
+      setIsPreviewLoading(true)
+      const response = await axios.post(`${API_BASE_URL}/preview`, {
+        query,
+        db_config: dbConfig
+      })
+      setPreviewData(response.data as PreviewData)
+    } catch (error) {
+      alert(`Preview failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsPreviewLoading(false)
+    }
   }
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -109,7 +135,41 @@ export function QueryExport() {
               className={queryError ? 'error' : ''}
             />
             {queryError && <div className="error-message">{queryError}</div>}
+            <button
+              type="button"
+              className="secondary-btn preview-btn"
+              onClick={() => handlePreview(document.querySelector<HTMLTextAreaElement>('#query')?.value || '')}
+              disabled={isPreviewLoading || !!queryError}
+            >
+              {isPreviewLoading ? 'Loading Preview...' : 'Preview Results'}
+            </button>
           </div>
+
+          {previewData && (
+            <div className="preview-table-container">
+              <h4>Query Preview ({previewData.row_count} rows)</h4>
+              <div className="table-wrapper">
+                <table className="preview-table">
+                  <thead>
+                    <tr>
+                      {previewData.columns.map((column, i) => (
+                        <th key={i}>{column}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewData.data.map((row, i) => (
+                      <tr key={i}>
+                        {previewData.columns.map((column, j) => (
+                          <td key={j}>{row[column]?.toString() ?? 'null'}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           <div className="form-grid">
             <div className="form-group">
