@@ -302,3 +302,176 @@ button:disabled {
 .preview-table tbody tr:hover {
   background-color: var(--bg-color);
 }
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Progress styles */
+.progress-container {
+  margin-bottom: 1rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background-color: var(--bg-color);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: var(--primary-color);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  text-align: center;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.status-text {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.summary-container {
+  padding: 1rem;
+}
+
+.summary-container h3 {
+  margin: 0 0 1.5rem;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.summary-item label {
+  font-weight: 600;
+  color: #666;
+}
+
+/* Make FTP details section span both columns */
+.ftp-details {
+  grid-column: 1 / -1;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+  margin-top: 10px;
+}
+
+.ftp-details h4 {
+  margin-bottom: 15px;
+  color: var(--text-primary);
+}
+
+.ftp-details .summary-item {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.close-btn {
+  margin-top: 1.5rem;
+  width: 100%;
+  padding: 0.625rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.pdf-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--primary-color);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.pdf-btn:hover {
+  background-color: var(--bg-color);
+}
+
+.pdf-btn svg {
+  display: block;
+}
+
+.error-modal .error-modal-header {
+  margin-bottom: 1.5rem;
+}
+
+.error-modal .error-modal-header h3 {
+  color: #dc2626;
+  margin: 0;
+}
+
+.error-modal .error-message {
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.error-modal .error-details {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.error-suggestions h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.error-suggestions ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--text-secondary);
+}
+
+.error-suggestions li {
+  margin-bottom: 0.25rem;
+}

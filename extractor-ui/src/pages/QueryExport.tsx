@@ -1,13 +1,24 @@
 import { FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { ProgressModal } from '../components/ProgressModal'
+import { ErrorModal } from '../components/ErrorModal'
 
-const API_BASE_URL = 'http://0.0.0.0:8000'
+const API_BASE_URL = 'http://localhost:8000'
+
+interface FTPConfig {
+  host: string
+  port: number
+  user: string
+  password: string
+  directory: string
+  use_tls: boolean
+  passive_mode: boolean
+}
 
 interface ExportData {
   query: string
   output_filename: string
-  output_format: string
   db_config: {
     db_type: string
     host: string
@@ -27,6 +38,8 @@ interface ExportData {
     fetch_size: number
     num_partitions: number
   }
+  output_destination: 'local' | 'ftp' | 'sftp'
+  ftp_config?: FTPConfig
 }
 
 interface PreviewData {
@@ -36,12 +49,60 @@ interface PreviewData {
   row_count: number
 }
 
+interface JobResponse {
+  job_id: string
+}
+
+interface JobStatus {
+  progress: number
+  status: string
+}
+
+interface JobSummary {
+  job_id: string
+  start_time: string
+  end_time: string
+  elapsed_time: number
+  status: string
+  total_records: number
+  output_file: string
+  format: string
+  errors: string[]
+  output_destination: 'local' | 'ftp' | 'sftp'
+  ftp_config?: {
+    host: string
+    port: number
+    user: string
+    directory: string
+    use_tls: boolean
+    passive_mode: boolean
+  }
+}
+
+interface ErrorDetail {
+  error: string
+  message: string
+  details: string
+  timestamp: string
+  suggestions: string[]
+}
+
+type StatusResponse = JobStatus | { 
+  detail: ErrorDetail
+}
+
 export function QueryExport() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
   const [queryError, setQueryError] = useState('')
   const [previewData, setPreviewData] = useState<PreviewData | null>(null)
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
+  const [showProgress, setShowProgress] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [exportStatus, setExportStatus] = useState('')
+  const [jobSummary, setJobSummary] = useState<JobSummary | undefined>(undefined)
+  const [error, setError] = useState<{ detail: ErrorDetail } | undefined>()
+  const [selectedDestination, setSelectedDestination] = useState<'local' | 'ftp' | 'sftp'>('local')
 
   const validateQuery = (query: string) => {
     if (query.includes(';')) {
@@ -83,7 +144,7 @@ export function QueryExport() {
     
     let filename = formData.get('output_filename') as string
     const format = formData.get('output_format') as string
-    
+
     if (!filename.endsWith(`.${format}`)) {
       filename += `.${format}`
     }
@@ -91,25 +152,114 @@ export function QueryExport() {
     const exportData: ExportData = {
       query,
       output_filename: filename,
-      output_format: format,
       db_config: dbConfig,
-      spark_config: sparkConfig
+      spark_config: sparkConfig,
+      output_destination: formData.get('output_destination') as 'local' | 'ftp' | 'sftp'
     }
 
+    // Add FTP config if FTP is selected
+    if (exportData.output_destination === 'ftp') {
+      exportData.ftp_config = {
+        host: formData.get('ftp_host') as string,
+        port: parseInt(formData.get('ftp_port') as string),
+        user: formData.get('ftp_user') as string,
+        password: formData.get('ftp_password') as string,
+        directory: formData.get('ftp_directory') as string,
+        use_tls: formData.get('use_tls') === 'on',
+        passive_mode: formData.get('passive_mode') === 'on'
+      }
+    }
+
+    // Store FTP config in state if selected
+    const ftpConfig = exportData.output_destination === 'ftp' ? exportData.ftp_config : undefined
+    
     try {
       setIsLoading(true)
-      await axios.post(`${API_BASE_URL}/extract_${format}`, exportData, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+      setShowProgress(true)
+      setProgress(0)
+      setExportStatus('Initializing export')
+      setJobSummary(undefined)  // Reset summary
+
+      // Start export - use format-specific endpoint
+      const response = await axios.post<JobResponse>(
+        `${API_BASE_URL}/extract_${format}`, 
+        exportData
+      )
+      const jobId = response.data.job_id
+
+      // Poll status every second
+      const statusInterval = setInterval(async () => {
+        try {
+          const statusResponse = await axios.get<StatusResponse>(`${API_BASE_URL}/status/${jobId}`)
+          const status = statusResponse.data
+          
+          if ('detail' in status) {
+            clearInterval(statusInterval)
+            setShowProgress(false)
+            setIsLoading(false)
+            setError({
+              detail: {
+                ...status.detail,
+                suggestions: []
+              }
+            })
+          } else if (isJobStatus(status)) {
+            setProgress(status.progress)
+            setExportStatus(status.status)
+            
+            if (status.progress >= 100 || status.status === 'completed') {
+              clearInterval(statusInterval)
+              setIsLoading(false)
+              
+              setTimeout(async () => {
+                try {
+                  const summaryResponse = await axios.get<JobSummary>(`${API_BASE_URL}/summary/${jobId}`)
+                  // Add the FTP config and destination to the summary
+                  setJobSummary({
+                    ...summaryResponse.data,
+                    output_destination: exportData.output_destination,
+                    ftp_config: ftpConfig
+                  })
+                } catch (error) {
+                  console.error('Failed to fetch job summary:', error)
+                }
+              }, 3000)
+            }
+          }
+        } catch (error) {
+          clearInterval(statusInterval)
+          setShowProgress(false)
+          setIsLoading(false)
+          
+          if (error && typeof error === 'object' && 'response' in error) {
+            const errorData = (error as any).response.data
+            setError({
+              detail: {
+                ...errorData.detail,
+                suggestions: []
+              }
+            })
+          }
         }
-      })
-      alert('Export completed successfully!')
+      }, 1000)
+
     } catch (error) {
-      alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    } finally {
+      setShowProgress(false)
       setIsLoading(false)
+      
+      if (error && typeof error === 'object' && 'response' in error) {
+        setError((error as any).response.data)
+      }
     }
+  }
+
+  const handleCloseModal = () => {
+    setShowProgress(false)
+    setJobSummary(undefined)
+  }
+
+  const isJobStatus = (data: any): data is JobStatus => {
+    return 'progress' in data && 'status' in data
   }
 
   return (
@@ -198,13 +348,120 @@ export function QueryExport() {
               </select>
             </div>
           </div>
+
+          <div className="form-section">
+            <label className="section-label">Output Destination</label>
+            <div className="radio-group">
+              <label className="radio-label">
+                <input
+                  type="radio"
+                  name="output_destination"
+                  value="local"
+                  defaultChecked
+                  onChange={(e) => setSelectedDestination(e.target.value as 'local' | 'ftp' | 'sftp')}
+                />
+                Local
+              </label>
+              <label className="radio-label">
+                <input
+                  type="radio"
+                  name="output_destination"
+                  value="ftp"
+                  onChange={(e) => setSelectedDestination(e.target.value as 'local' | 'ftp' | 'sftp')}
+                />
+                FTP
+              </label>
+              <label className="radio-label">
+                <input
+                  type="radio"
+                  name="output_destination"
+                  value="sftp"
+                  onChange={(e) => setSelectedDestination(e.target.value as 'local' | 'ftp' | 'sftp')}
+                />
+                SFTP
+              </label>
+            </div>
+
+            {/* FTP Configuration Form */}
+            {selectedDestination === 'ftp' && (
+              <div className="ftp-config">
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label htmlFor="ftp_host">Host</label>
+                    <input
+                      type="text"
+                      id="ftp_host"
+                      name="ftp_host"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ftp_port">Port</label>
+                    <input
+                      type="number"
+                      id="ftp_port"
+                      name="ftp_port"
+                      defaultValue={21}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ftp_user">Username</label>
+                    <input
+                      type="text"
+                      id="ftp_user"
+                      name="ftp_user"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ftp_password">Password</label>
+                    <input
+                      type="password"
+                      id="ftp_password"
+                      name="ftp_password"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="ftp_directory">Directory</label>
+                    <input
+                      type="text"
+                      id="ftp_directory"
+                      name="ftp_directory"
+                      defaultValue="/"
+                      required
+                    />
+                  </div>
+                  <div className="form-group checkboxes">
+                    <label>
+                      <input
+                        type="checkbox"
+                        name="use_tls"
+                        defaultChecked
+                      />
+                      Use TLS
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        name="passive_mode"
+                        defaultChecked
+                      />
+                      Passive Mode
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="form-footer">
           <button
             type="button"
             className="secondary-btn"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/spark')}
             disabled={isLoading}
           >
             Back
@@ -221,6 +478,19 @@ export function QueryExport() {
           </button>
         </div>
       </form>
+
+      <ProgressModal 
+        isOpen={showProgress}
+        progress={progress}
+        status={exportStatus}
+        summary={jobSummary}
+        onClose={handleCloseModal}
+      />
+      <ErrorModal 
+        isOpen={!!error}
+        error={error}
+        onClose={() => setError(undefined)}
+      />
     </div>
   )
-} 
+}
