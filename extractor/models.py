@@ -7,6 +7,7 @@ class DBType(str, Enum):
     POSTGRES = "postgresql"
     MYSQL = "mysql"
     MSSQL = "sqlserver"
+    ORACLE = "oracle"
 
 class SparkConfig(BaseModel):
     driver_memory: str = Field(default="10g", description="Spark driver memory")
@@ -32,14 +33,21 @@ class DatabaseConfig(BaseModel):
         return {
             DBType.POSTGRES: "org.postgresql.Driver",
             DBType.MYSQL: "com.mysql.cj.jdbc.Driver",
-            DBType.MSSQL: "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+            DBType.MSSQL: "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+            DBType.ORACLE: "oracle.jdbc.driver.OracleDriver"
         }[self.db_type]
     
     @property
     def jdbc_url(self) -> str:
         if self.db_type == DBType.MSSQL:
             return f"jdbc:sqlserver://{self.host}:{self.port};databaseName={self.database}"
-        return f"jdbc:{self.db_type}://{self.host}:{self.port}/{self.database}"
+        elif self.db_type == DBType.ORACLE:
+            if self.database.startswith("/"):  # Service name
+                return f"jdbc:oracle:thin:@//{self.host}:{self.port}{self.database}"
+            else:  # SID
+                return f"jdbc:oracle:thin:@{self.host}:{self.port}:{self.database}"
+        else:
+            return f"jdbc:{self.db_type}://{self.host}:{self.port}/{self.database}"
 
 class OutputDestination(str, Enum):
     LOCAL = "local"
@@ -88,4 +96,41 @@ class JobStatus(BaseModel):
     output_file: Optional[str] = None
     format: Optional[str] = None
     errors: list[str] = []
-    db_config: Optional[DatabaseConfig] = None 
+    db_config: Optional[DatabaseConfig] = None
+
+class DBConfig:
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        database: str,
+        user: str,
+        password: str,
+        db_type: str  # "postgresql", "mysql", "mssql", "oracle"
+    ):
+        self.host = host
+        self.port = port
+        self.database = database
+        self.user = user
+        self.password = password
+        self.db_type = db_type.lower()
+        
+        # Set driver and build JDBC URL based on database type
+        if self.db_type == "postgresql":
+            self.driver = "org.postgresql.Driver"
+            self.jdbc_url = f"jdbc:postgresql://{host}:{port}/{database}"
+        elif self.db_type == "mysql":
+            self.driver = "com.mysql.cj.jdbc.Driver"
+            self.jdbc_url = f"jdbc:mysql://{host}:{port}/{database}"
+        elif self.db_type == "mssql":
+            self.driver = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+            self.jdbc_url = f"jdbc:sqlserver://{host}:{port};databaseName={database}"
+        elif self.db_type == "oracle":
+            self.driver = "oracle.jdbc.driver.OracleDriver"
+            # Oracle uses service name or SID
+            if database.startswith("/"):  # Service name
+                self.jdbc_url = f"jdbc:oracle:thin:@//{host}:{port}{database}"
+            else:  # SID
+                self.jdbc_url = f"jdbc:oracle:thin:@{host}:{port}:{database}"
+        else:
+            raise ValueError(f"Unsupported database type: {db_type}") 

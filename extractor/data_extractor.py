@@ -24,7 +24,8 @@ def create_spark_session(spark_config: SparkConfig = None):
                 "org.postgresql:postgresql:42.2.18," + 
                 "mysql:mysql-connector-java:8.0.28," +
                 "com.microsoft.sqlserver:mssql-jdbc:9.4.1.jre8," +
-                "com.databricks:spark-xml_2.12:0.15.0") \
+                "com.databricks:spark-xml_2.12:0.15.0," +
+                "com.oracle.database.jdbc:ojdbc8:21.5.0.0") \
         .config("spark.driver.memory", spark_config.driver_memory) \
         .config("spark.executor.memory", spark_config.executor_memory) \
         .config("spark.executor.cores", spark_config.executor_cores) \
@@ -42,15 +43,27 @@ def extract_data(spark, db_params, query, output_path, format="csv", spark_confi
         spark_config = SparkConfig()
 
     try:
+        # Add Oracle-specific connection options
+        jdbc_options = {
+            "url": db_params.jdbc_url,
+            "driver": db_params.driver,
+            "dbtable": f"({query}) as tmp",
+            "user": db_params.user,
+            "password": db_params.password,
+            "fetchsize": spark_config.fetch_size if spark_config else 10000,
+        }
+        
+        # Add Oracle-specific options
+        if "oracle" in db_params.driver.lower():
+            jdbc_options.update({
+                "oracle.jdbc.timezoneAsRegion": "false",
+                "oracle.jdbc.defaultNChar": "true",
+                "oracle.jdbc.mapDateToTimestamp": "false"
+            })
+
         df = spark.read \
             .format("jdbc") \
-            .option("url", f"{db_params.jdbc_url}?sslmode=disable") \
-            .option("driver", db_params.driver) \
-            .option("dbtable", f"({query}) as tmp") \
-            .option("user", db_params.user) \
-            .option("password", db_params.password) \
-            .option("fetchsize", spark_config.fetch_size) \
-            .option("numPartitions", spark_config.num_partitions) \
+            .options(**jdbc_options) \
             .load()
         
         if format == "sql":
