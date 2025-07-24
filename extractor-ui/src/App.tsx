@@ -3,6 +3,7 @@ import { DatabaseConfig } from './pages/DatabaseConfig.tsx'
 import { SparkConfig } from './pages/SparkConfig.tsx'
 import { QueryExport } from './pages/QueryExport.tsx'
 import { Base64Export } from './pages/Base64Export.tsx'
+import { EpitomaxForms } from './pages/EpitomaxForms.tsx'
 import './App.css'
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
           <Link to="/spark" className="nav-link">Spark Config</Link>
           <Link to="/query" className="nav-link">Query & Export</Link>
           <Link to="/base64" className="nav-link">Export Base64</Link>
+          <Link to="/epitomax-forms" className="nav-link">Epitomax Forms</Link>
         </nav>
       </aside>
 
@@ -24,6 +26,7 @@ function App() {
           <Route path="/spark" element={<SparkConfig />} />
           <Route path="/query" element={<QueryExport />} />
           <Route path="/base64" element={<Base64Export />} />
+          <Route path="/epitomax-forms" element={<EpitomaxForms />} />
         </Routes>
       </main>
     </BrowserRouter>
