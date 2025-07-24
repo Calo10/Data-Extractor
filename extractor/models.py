@@ -98,6 +98,15 @@ class JobStatus(BaseModel):
     errors: list[str] = []
     db_config: Optional[DatabaseConfig] = None
 
+class FileDownloadRequest(BaseModel):
+    table_name: str = Field(..., description="Name of the table containing files", example="documents")
+    name_column: str = Field(..., description="Column containing the file name", example="filename")
+    file_column: str = Field(..., description="Column containing the file data (BLOB/BINARY)", example="file_data")
+    extension_column: str = Field(..., description="Column containing the file extension", example="file_extension")
+    db_config: DatabaseConfig = Field(..., description="Database connection configuration")
+    output_destination: str = Field(default="local", description="Output destination (local or ftp)")
+    ftp_config: Optional[FTPConfig] = Field(default=None, description="FTP configuration (if output_destination is ftp)")
+
 class DBConfig:
     def __init__(
         self,

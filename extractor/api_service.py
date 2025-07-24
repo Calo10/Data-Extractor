@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
 from data_extractor import create_spark_session, extract_data, extract_data_async, progress_tracker
-from models import ExtractionRequest, DatabaseConfig, DBType, JobStatus, JobSummary
+from file_downloader import download_files_async, file_download_tracker, get_file_download_job_summary
+from models import ExtractionRequest, FileDownloadRequest, DatabaseConfig, DBType, JobStatus, JobSummary
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -293,6 +294,42 @@ async def preview_data(request: PreviewRequest):
             spark.stop()
     except Exception as e:
         raise handle_extraction_error(e, request.db_config)
+
+@app.post("/download_files", 
+    response_description="File download result with job ID",
+    summary="Download files from database",
+    description="Downloads files stored in database BLOB/BINARY columns and saves them locally or uploads to FTP")
+async def download_files(request: FileDownloadRequest):
+    try:
+        job_id = await download_files_async(
+            table_name=request.table_name,
+            name_column=request.name_column,
+            file_column=request.file_column,
+            extension_column=request.extension_column,
+            db_config=request.db_config,
+            output_destination=request.output_destination,
+            ftp_config=request.ftp_config
+        )
+        return {"job_id": job_id, "status": "started"}
+    except Exception as e:
+        raise handle_extraction_error(e, request.db_config)
+
+@app.get("/file_download_status/{job_id}")
+async def get_file_download_status(job_id: str):
+    status = file_download_tracker.get_job(job_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if status.status == "failed":
+        error_msg = status.errors[0] if status.errors else "Unknown error"
+        raise handle_extraction_error(Exception(error_msg), status.db_config)
+    return status
+
+@app.get("/file_download_summary/{job_id}")
+async def get_file_download_summary(job_id: str):
+    summary = get_file_download_job_summary(job_id)
+    if not summary:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return summary
 
 @app.get("/status/{job_id}")
 async def get_job_status(job_id: str):
