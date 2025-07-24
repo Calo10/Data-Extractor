@@ -475,3 +475,25 @@ button:disabled {
 .error-suggestions li {
   margin-bottom: 0.25rem;
 }
+
+.save-query-modal {
+  max-width: 400px;
+}
+
+.save-query-modal .modal-header {
+  margin-bottom: 1.5rem;
+}
+
+.save-query-modal .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.save-query-modal input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}

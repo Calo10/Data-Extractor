@@ -1,8 +1,8 @@
 import { FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-interface DbConfig {
-  db_type: string
+interface DBConfig {
+  db_type: 'postgresql' | 'mysql' | 'sqlserver' | 'oracle'
   host: string
   port: string
   database: string
@@ -24,8 +24,8 @@ export function DatabaseConfig() {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     
-    const dbConfig: DbConfig = {
-      db_type: formData.get('db_type') as string,
+    const dbConfig: DBConfig = {
+      db_type: formData.get('db_type') as 'postgresql' | 'mysql' | 'sqlserver' | 'oracle',
       host: formData.get('host') as string,
       port: formData.get('port') as string,
       database: formData.get('database') as string,
@@ -62,6 +62,7 @@ export function DatabaseConfig() {
                 <option value="postgresql">PostgreSQL</option>
                 <option value="mysql">MySQL</option>
                 <option value="sqlserver">SQL Server</option>
+                <option value="oracle">Oracle</option>
               </select>
             </div>
 

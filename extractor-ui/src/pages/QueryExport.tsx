@@ -91,6 +91,12 @@ type StatusResponse = JobStatus | {
   detail: ErrorDetail
 }
 
+interface SavedQuery {
+  name: string
+  query: string
+  created_at: string
+}
+
 export function QueryExport() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
@@ -103,6 +109,11 @@ export function QueryExport() {
   const [jobSummary, setJobSummary] = useState<JobSummary | undefined>(undefined)
   const [error, setError] = useState<{ detail: ErrorDetail } | undefined>()
   const [selectedDestination, setSelectedDestination] = useState<'local' | 'ftp' | 'sftp'>('local')
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [savedQueries, setSavedQueries] = useState<SavedQuery[]>(() => {
+    const saved = localStorage.getItem('savedQueries')
+    return saved ? JSON.parse(saved) : []
+  })
 
   const validateQuery = (query: string) => {
     if (query.includes(';')) {
@@ -123,8 +134,27 @@ export function QueryExport() {
         db_config: dbConfig
       })
       setPreviewData(response.data as PreviewData)
+      setShowSaveDialog(true)
     } catch (error) {
-      alert(`Preview failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      if (error && typeof error === 'object' && 'response' in error) {
+        const errorData = (error as any).response.data
+        setError({
+          detail: {
+            ...errorData.detail,
+            suggestions: errorData.detail.suggestions || []
+          }
+        })
+      } else {
+        setError({
+          detail: {
+            error: 'Preview Error',
+            message: error instanceof Error ? error.message : 'Unknown error occurred',
+            details: '',
+            timestamp: new Date().toISOString(),
+            suggestions: []
+          }
+        })
+      }
     } finally {
       setIsPreviewLoading(false)
     }
@@ -260,6 +290,19 @@ export function QueryExport() {
 
   const isJobStatus = (data: any): data is JobStatus => {
     return 'progress' in data && 'status' in data
+  }
+
+  const handleSaveQuery = (name: string, query: string) => {
+    const newQuery: SavedQuery = {
+      name,
+      query,
+      created_at: new Date().toISOString()
+    }
+    
+    const updatedQueries = [...savedQueries, newQuery]
+    setSavedQueries(updatedQueries)
+    localStorage.setItem('savedQueries', JSON.stringify(updatedQueries))
+    setShowSaveDialog(false)
   }
 
   return (
@@ -491,6 +534,66 @@ export function QueryExport() {
         error={error}
         onClose={() => setError(undefined)}
       />
+
+      {showSaveDialog && previewData && (
+        <div className="modal-overlay">
+          <div className="modal-content save-query-modal">
+            <div className="modal-header">
+              <h3>Save Query</h3>
+            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              const name = new FormData(e.currentTarget).get('queryName') as string
+              const query = (document.querySelector('#query') as HTMLTextAreaElement).value
+              handleSaveQuery(name, query)
+            }}>
+              <div className="form-group">
+                <label htmlFor="queryName">Query Name</label>
+                <input 
+                  type="text" 
+                  id="queryName" 
+                  name="queryName" 
+                  required 
+                  placeholder="Enter a name for this query"
+                />
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="secondary-btn" onClick={() => setShowSaveDialog(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="generate-btn">
+                  Save Query
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add saved queries dropdown */}
+      <div className="form-group">
+        <label htmlFor="savedQueries">Saved Queries</label>
+        <select 
+          id="savedQueries" 
+          onChange={(e) => {
+            if (e.target.value) {
+              const selected = savedQueries.find(q => q.name === e.target.value)
+              if (selected) {
+                const textarea = document.querySelector('#query') as HTMLTextAreaElement
+                textarea.value = selected.query
+                setPreviewData(null)  // Clear preview data when switching queries
+              }
+            }
+          }}
+        >
+          <option value="">Select a saved query</option>
+          {savedQueries.map(query => (
+            <option key={query.name} value={query.name}>
+              {query.name}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   )
 }
