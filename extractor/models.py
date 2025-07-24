@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, SecretStr
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 class DBType(str, Enum):
@@ -143,3 +143,31 @@ class DBConfig:
                 self.jdbc_url = f"jdbc:oracle:thin:@{host}:{port}:{database}"
         else:
             raise ValueError(f"Unsupported database type: {db_type}") 
+
+class EpitomaxAuthRequest(BaseModel):
+    username: str = Field(..., description="Epitomax username")
+    password: str = Field(..., description="Epitomax password")
+
+class EpitomaxDownloadRequest(BaseModel):
+    url: str = Field(..., description="URL to the Epitomax PDF form to download") 
+
+class EpitomaxSeleniumDownloadRequest(BaseModel):
+    username: str
+    password: str
+    url: str
+    output_destination: str = "local"  # "local" or "ftp"
+    ftp_config: Optional[FTPConfig] = None 
+
+class EpitomaxJobStatus(BaseModel):
+    job_id: str
+    status: str = "pending"  # pending, running, completed, failed
+    progress: float = 0.0
+    message: str = ""
+    start_time: datetime = datetime.now()
+    end_time: Optional[datetime] = None
+    local_path: Optional[str] = None
+    ftp_host: Optional[str] = None
+    ftp_directory: Optional[str] = None
+    errors: List[str] = []
+    total_records: int = 1
+    format: str = "PDF" 
