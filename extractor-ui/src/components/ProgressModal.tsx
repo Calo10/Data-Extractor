@@ -76,8 +76,8 @@ function generatePDF(summary: JobSummary) {
     { label: 'Status', value: summary.status || 'N/A' },
     { label: 'Created', value: formatTimestamp(summary.start_time) },
     { label: 'Total Records', value: summary.total_records?.toLocaleString() || 'N/A' },
-    { label: 'Output File', value: summary.output_file || 'Processing...' },
-    { label: 'Format', value: summary.format?.toUpperCase() || 'N/A' },
+    { label: 'Output File', value: summary.output_file || 'Files downloaded successfully' },
+    { label: 'Format', value: summary.format === 'files' ? 'FILES' : summary.format?.toUpperCase() || 'N/A' },
     { label: 'Duration', value: summary.elapsed_time ? `${summary.elapsed_time.toFixed(2)} seconds` : 'Processing...' },
     ...(summary.output_destination ? [{ label: 'Destination', value: summary.output_destination.toUpperCase() }] : [])
   ]
@@ -198,11 +198,11 @@ export function ProgressModal({ isOpen, progress, status, summary, onClose }: Pr
               </div>
               <div className="summary-item">
                 <label>Output File:</label>
-                <span>{summary.output_file || 'Processing...'}</span>
+                <span>{summary.output_file || 'Files downloaded successfully'}</span>
               </div>
               <div className="summary-item">
                 <label>Format:</label>
-                <span>{summary.format?.toUpperCase() || 'N/A'}</span>
+                <span>{summary.format === 'files' ? 'FILES' : summary.format?.toUpperCase() || 'N/A'}</span>
               </div>
               <div className="summary-item">
                 <label>Duration:</label>

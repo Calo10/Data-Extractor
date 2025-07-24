@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { DatabaseConfig } from './pages/DatabaseConfig.tsx'
 import { SparkConfig } from './pages/SparkConfig.tsx'
 import { QueryExport } from './pages/QueryExport.tsx'
+import { Base64Export } from './pages/Base64Export.tsx'
 import './App.css'
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
           <Link to="/" className="nav-link">Database Config</Link>
           <Link to="/spark" className="nav-link">Spark Config</Link>
           <Link to="/query" className="nav-link">Query & Export</Link>
+          <Link to="/base64" className="nav-link">Export Base64</Link>
         </nav>
       </aside>
 
@@ -21,6 +23,7 @@ function App() {
           <Route path="/" element={<DatabaseConfig />} />
           <Route path="/spark" element={<SparkConfig />} />
           <Route path="/query" element={<QueryExport />} />
+          <Route path="/base64" element={<Base64Export />} />
         </Routes>
       </main>
     </BrowserRouter>

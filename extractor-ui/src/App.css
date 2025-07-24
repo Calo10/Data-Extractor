@@ -497,3 +497,39 @@ button:disabled {
   border: 1px solid var(--border-color);
   border-radius: 4px;
 }
+
+/* Form section styles */
+.form-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.form-section h4 {
+  margin: 0 0 1rem;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Column configuration grid */
+.form-section .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+/* Base64 export specific styles */
+.base64-config {
+  background-color: var(--bg-secondary);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.base64-config h4 {
+  margin: 0 0 1rem;
+  color: var(--text-primary);
+}
